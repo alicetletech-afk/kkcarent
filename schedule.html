@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ตารางรถทั้งหมด</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🗓️</div>
+      <div><h1>ตารางรถทั้งหมด</h1><p>ดูรถทุกคันตามวันและเวลา</p></div>
+    </div>
+    <nav class="nav">
+      <a href="index.html">＋ เพิ่มสถานะรถ</a>
+      <a class="active" href="schedule.html">ดูตารางรถทั้งหมด</a>
+    </nav>
+  </header>
+
+  <main class="card form-card">
+    <div class="toolbar">
+      <div>
+        <strong id="rangeTitle">สัปดาห์นี้</strong>
+        <div style="font-size:13px;color:var(--muted);margin-top:3px">เลื่อนดูสัปดาห์ก่อนหน้า–ถัดไป หรือเลือกวันที่เริ่มเอง</div>
+      </div>
+      <div class="range-controls">
+        <button class="small-btn" id="prevBtn">‹ ก่อนหน้า</button>
+        <button class="small-btn active" id="todayBtn">วันนี้</button>
+        <button class="small-btn" id="nextBtn">ถัดไป ›</button>
+        <input class="small-btn" id="pickDate" type="date">
+      </div>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="timeline" id="timeline"></div>
+    </div>
+
+    <div class="legend">
+      <span><i class="dot" style="background:var(--pink)"></i>ลูกค้าจอง</span>
+      <span><i class="dot" style="background:var(--yellow)"></i>รอยืนยัน</span>
+      <span><i class="dot" style="background:var(--sky)"></i>ใช้ส่วนตัว</span>
+      <span><i class="dot" style="background:var(--purple)"></i>เข้าอู่ / ซ่อม</span>
+      <span><i class="dot" style="background:var(--green)"></i>ว่าง</span>
+    </div>
+  </main>
+</div>
+
+<script>
+const cars = [
+  {plate:'กข 1234',name:'รถตู้ขาว',icon:'🚐'},
+  {plate:'ขค 5678',name:'รถเก๋งฟ้า',icon:'🚗'},
+  {plate:'งจ 9012',name:'รถกระบะ',icon:'🛻'}
+];
+const statusClass = {
+  'ลูกค้าจอง':'status-booked',
+  'รอยืนยัน':'status-pending',
+  'ใช้ส่วนตัว':'status-private',
+  'เข้าอู่ / ซ่อม':'status-service'
+};
+let anchor = new Date();
+anchor.setHours(0,0,0,0);
+
+function mondayOf(date){
+  const d=new Date(date);
+  const day=d.getDay()||7;
+  d.setDate(d.getDate()-day+1);
+  return d;
+}
+function iso(d){return d.toISOString().slice(0,10)}
+function fmtDate(d){
+  return d.toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short'});
+}
+function render(){
+  const start=mondayOf(anchor);
+  const days=[...Array(7)].map((_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d});
+  rangeTitle.textContent=`${days[0].toLocaleDateString('th-TH',{day:'numeric',month:'short'})} – ${days[6].toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'numeric'})}`;
+  pickDate.value=iso(anchor);
+
+  const demo = [
+    {car:'กข 1234',status:'ลูกค้าจอง',startDate:iso(days[0]),endDate:iso(days[0]),allDay:false,startTime:'09:00',endTime:'12:00',note:'รับสนามบิน'},
+    {car:'ขค 5678',status:'รอยืนยัน',startDate:iso(days[2]),endDate:iso(days[2]),allDay:false,startTime:'13:00',endTime:'17:00',note:'คุณมุก'},
+    {car:'งจ 9012',status:'เข้าอู่ / ซ่อม',startDate:iso(days[4]),endDate:iso(days[4]),allDay:true,startTime:'ทั้งวัน',endTime:'',note:'เปลี่ยนน้ำมัน'}
+  ];
+  const stored=JSON.parse(localStorage.getItem('carBookings')||'[]');
+  const bookings=[...demo,...stored];
+
+  timeline.innerHTML='';
+  timeline.insertAdjacentHTML('beforeend','<div class="cell header-cell">รถ / วันที่</div>');
+  days.forEach(d=>timeline.insertAdjacentHTML('beforeend',`<div class="cell header-cell">${fmtDate(d)}</div>`));
+
+  cars.forEach(car=>{
+    timeline.insertAdjacentHTML('beforeend',`<div class="cell vehicle-cell"><div class="vehicle-badge">${car.icon}</div><div class="vehicle-meta"><strong>${car.plate}</strong><span>${car.name}</span></div></div>`);
+    days.forEach(d=>{
+      const date=iso(d);
+      const matches=bookings.filter(b=>b.car===car.plate && date>=b.startDate && date<=b.endDate);
+      let html='<div class="cell day-cell">';
+      if(!matches.length){
+        html+='<div class="booking" style="background:var(--green)">ว่าง<small>ทั้งวัน</small></div>';
+      }else{
+        matches.forEach(b=>{
+          const cls=statusClass[b.status]||'';
+          html+=`<div class="booking ${cls}">${b.status}<small>${b.allDay?'ทั้งวัน':`${b.startTime}–${b.endTime}`}${b.note?' · '+b.note:''}</small></div>`;
+        });
+      }
+      html+='</div>';
+      timeline.insertAdjacentHTML('beforeend',html);
+    });
+  });
+}
+prevBtn.addEventListener('click',()=>{anchor.setDate(anchor.getDate()-7);render()});
+nextBtn.addEventListener('click',()=>{anchor.setDate(anchor.getDate()+7);render()});
+todayBtn.addEventListener('click',()=>{anchor=new Date();anchor.setHours(0,0,0,0);render()});
+pickDate.addEventListener('change',()=>{if(pickDate.value){anchor=new Date(pickDate.value+'T00:00:00');render()}});
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>เพิ่มสถานะรถ</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">🚙</div>
+      <div><h1>ตารางรถของคุณแม่</h1><p>เพิ่มช่วงเวลาที่รถไม่ว่างได้ง่าย ๆ</p></div>
+    </div>
+    <nav class="nav">
+      <a class="active" href="index.html">＋ เพิ่มสถานะรถ</a>
+      <a href="schedule.html">ดูตารางรถทั้งหมด</a>
+    </nav>
+  </header>
+
+  <main class="card form-card">
+    <div class="step"><div class="step-no">1</div><h2>เลือกรถ</h2></div>
+    <div class="car-grid">
+      <label class="car-option">
+        <input type="radio" name="car" value="กข 1234" data-name="รถตู้ขาว" checked>
+        <div class="car-tile"><div class="car-icon">🚐</div><div><div class="plate">กข 1234</div><div class="car-name">รถตู้ขาว</div></div></div>
+      </label>
+      <label class="car-option">
+        <input type="radio" name="car" value="ขค 5678" data-name="รถเก๋งฟ้า">
+        <div class="car-tile"><div class="car-icon">🚗</div><div><div class="plate">ขค 5678</div><div class="car-name">รถเก๋งฟ้า</div></div></div>
+      </label>
+      <label class="car-option">
+        <input type="radio" name="car" value="งจ 9012" data-name="รถกระบะ">
+        <div class="car-tile"><div class="car-icon">🛻</div><div><div class="plate">งจ 9012</div><div class="car-name">รถกระบะ</div></div></div>
+      </label>
+    </div>
+
+    <div style="height:24px"></div>
+    <div class="step"><div class="step-no">2</div><h2>เลือกสถานะ</h2></div>
+    <div class="status-grid">
+      <label class="status-option"><input type="radio" name="status" value="ลูกค้าจอง" checked><div class="status-chip status-booked">ลูกค้าจอง</div></label>
+      <label class="status-option"><input type="radio" name="status" value="รอยืนยัน"><div class="status-chip status-pending">รอยืนยัน</div></label>
+      <label class="status-option"><input type="radio" name="status" value="ใช้ส่วนตัว"><div class="status-chip status-private">ใช้ส่วนตัว</div></label>
+      <label class="status-option"><input type="radio" name="status" value="เข้าอู่ / ซ่อม"><div class="status-chip status-service">เข้าอู่ / ซ่อม</div></label>
+    </div>
+
+    <div style="height:24px"></div>
+    <div class="step"><div class="step-no">3</div><h2>เลือกวันที่และเวลา</h2></div>
+    <div class="all-day">
+      <input id="allDay" type="checkbox">
+      <label for="allDay"><strong>ไม่ว่างทั้งวัน</strong> <span style="color:var(--muted)">— ไม่ต้องระบุเวลา</span></label>
+    </div>
+    <div style="height:14px"></div>
+    <div class="grid-2">
+      <div class="field"><label>วันที่เริ่ม</label><input id="startDate" type="date"></div>
+      <div class="field"><label>วันที่สิ้นสุด</label><input id="endDate" type="date"></div>
+      <div class="field"><label>เวลาเริ่ม</label><input id="startTime" type="time" value="08:00"></div>
+      <div class="field"><label>เวลาสิ้นสุด</label><input id="endTime" type="time" value="17:00"></div>
+    </div>
+
+    <div style="height:18px"></div>
+    <div class="field">
+      <label>หมายเหตุ (ไม่บังคับ)</label>
+      <textarea id="note" rows="3" placeholder="เช่น คุณสมชาย / รับสนามบิน / ใช้ไปธุระ"></textarea>
+    </div>
+
+    <div class="actions">
+      <a class="btn btn-secondary" href="schedule.html">ไปดูตารางรถ</a>
+      <button class="btn btn-primary" id="saveBtn" type="button">บันทึกสถานะรถ</button>
+    </div>
+    <div class="notice" id="notice">บันทึกเรียบร้อยแล้วค่ะ</div>
+  </main>
+</div>
+
+<script>
+const today = new Date().toISOString().slice(0,10);
+startDate.value = today;
+endDate.value = today;
+
+allDay.addEventListener('change', () => {
+  startTime.disabled = allDay.checked;
+  endTime.disabled = allDay.checked;
+});
+
+saveBtn.addEventListener('click', () => {
+  const selectedCar = document.querySelector('input[name="car"]:checked');
+  const status = document.querySelector('input[name="status"]:checked').value;
+  if (!startDate.value || !endDate.value) {
+    alert('กรุณาเลือกวันที่ให้ครบค่ะ');
+    return;
+  }
+  const bookings = JSON.parse(localStorage.getItem('carBookings') || '[]');
+  bookings.push({
+    car:selectedCar.value,
+    carName:selectedCar.dataset.name,
+    status,
+    startDate:startDate.value,
+    endDate:endDate.value,
+    allDay:allDay.checked,
+    startTime:allDay.checked ? 'ทั้งวัน' : startTime.value,
+    endTime:allDay.checked ? '' : endTime.value,
+    note:note.value.trim()
+  });
+  localStorage.setItem('carBookings', JSON.stringify(bookings));
+  notice.style.display='block';
+  notice.textContent='บันทึกแล้ว — เปิดหน้าตารางเพื่อเช็กได้เลยค่ะ';
+  setTimeout(()=>notice.style.display='none',2600);
+});
+</script>
+</body>
+</html>
